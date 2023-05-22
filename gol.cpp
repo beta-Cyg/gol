@@ -95,10 +95,11 @@ public:
 					ege::bar(j*10,i*10,(j+1)*10,(i+1)*10);
 	}
 
-	void import_seed(const char* file_name){
+	int import_seed(const char* file_name){
 		FILE* ptr=std::fopen(file_name,"r");
 		int l,w;
-		if(std::fscanf(ptr,"%d %d",&l,&w)==EOF)return;
+		int tmp;
+		if((tmp=std::fscanf(ptr,"%d %d",&l,&w))==EOF)return tmp;
 		len=l;
 		wid=w;
 		field.resize(w);
@@ -107,17 +108,23 @@ public:
 		clear();
 		int x,y;
 		while(std::fscanf(ptr,"%d %d",&x,&y)!=EOF)
-			field[y][x]=true;
-		std::fclose(ptr);
+			if(x>=wid or y>=len or x<0 or y<0){
+				std::fprintf(stderr,"wrong seed\n");
+				return 1;
+			}
+			else
+				field[y][x]=true;
+		return std::fclose(ptr);
 	}
 
-	void export_seed(const char* file_name){
+	int export_seed(const char* file_name){
 		FILE* ptr=std::fopen(file_name,"w");
 		std::fprintf(ptr,"%d %d\n",len,wid);
 		for(int i=0;i<wid;i++)
 			for(int j=0;j<len;j++)
 				if(field[i][j])
 					std::fprintf(ptr,"%d %d\n",j,i);
+		return std::fclose(ptr);
 	}
 
 	int length()const{
@@ -135,7 +142,9 @@ gol test;
 
 int main(int argc,char** argv){
 	if(argc!=2)return 1;
-	test.import_seed(argv[1]);
+	int import_result;
+	if(import_result=test.import_seed(argv[1]))
+		return import_result;
 	
 	ege::initgraph(test.length()*10,test.width()*10);
 	ege::setfillcolor(EGERGB(0xFF,0xFF,0xFF));
@@ -174,16 +183,22 @@ int main(int argc,char** argv){
 		else if(std::strcmp(input,"set")==0){
 			int x,y,s;
 			std::scanf("%d %d %d",&x,&y,&s);
-			test.set(y,x,s);
+			if(x>=test.width() or y>=test.length() or x<0 or y<0)
+				std::fprintf(stderr,"not in the range\n");
+			else
+				test.set(y,x,s);
 		}
 		else if(std::strcmp(input,"export")==0){
 			char fn[32];
 			std::scanf("%s",fn);
-			test.export_seed(fn);
-			std::printf("OK\n");
+			int export_result=test.export_seed(fn);
+			if(export_result)
+				std::fprintf(stderr,"failed to save\n");
+			else
+				std::printf("successfully saved\n");
 		}
 		else
-			std::printf("undefined\n");
+			std::printf("undefined order\n");
 		if(isplay){
 			isplay=false;
 			continue;
